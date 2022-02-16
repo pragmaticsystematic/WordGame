@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\wolverine1984\.Rider2019.3\config\consoles\db" t="IncludeRecursive" />
+    <e p="C:\Users\wolverine1984\.Rider2019.3\system\extResources" t="IncludeRecursive" />
+    <e p="C:\Users\wolverine1984\.Rider2019.3\system\resharper-host\local\Transient\ReSharperHost\v193\SolutionCaches\_WordGame.1470153003.00" t="ExcludeRecursive" />
+    <e p="C:\Users\wolverine1984\Documents\Unity\WordGame" t="IncludeRecursive">
+      <e p="Assembly-CSharp.csproj" t="IncludeRecursive" />
+      <e p="Assets" t="Include">
+        <e p="Scripts" t="Include">
+          <e p="Backend" t="Include">
+            <e p="GameBoard.cs" t="Include" />
+            <e p="GameLogic.cs" t="Include" />
+            <e p="LetterData.cs" t="Include" />
+            <e p="WordData.cs" t="Include" />
+          </e>
+          <e p="Common" t="Include">
+            <e p="Enums.cs" t="Include" />
+          </e>
+          <e p="GameManager.cs" t="Include" />
+          <e p="UI" t="Include">
+            <e p="GameGridScript.cs" t="Include" />
+            <e p="KeyboardButton.cs" t="Include" />
+            <e p="LetterCellScript.cs" t="Include" />
+            <e p="WordScript.cs" t="Include" />
+          </e>
+        </e>
+      </e>
+      <e p="obj" t="ExcludeRecursive" />
+      <e p="Packages" t="ExcludeRecursive" />
+      <e p="Temp\Bin" t="ExcludeRecursive" />
+      <e p="WordGame.sln" t="IncludeFlat" />
+    </e>
+  </component>
+</project>
