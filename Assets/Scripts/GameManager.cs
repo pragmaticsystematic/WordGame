@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Backend;
@@ -21,7 +22,7 @@ public class GameManager : MonoBehaviour
 
     private readonly string keys = "qwertyuiopasdfghjklzxcvbnm<!&";
 
-    private readonly List<string> keyList = new List<string>() {"qwertyuiop<", "asdfghjkl", "zxcvbnm!"};
+    private readonly List<string> keyList = new List<string>() {"qwertyuiop", "asdfghjkl<", "zxcvbnm!"};
 
     private Dictionary<char, KeyboardButton> _keyboardButtons;
 
@@ -70,17 +71,26 @@ public class GameManager : MonoBehaviour
         // }
 
         foreach (var keyString in keyList)
-        {
+        {    
             var buttonRow = Instantiate(KeyboardKeyRow, KeyboardContainer.transform, false) as GameObject;
+            var keyboardContainerWidth = ((RectTransform) KeyboardContainer.transform).rect.width;
+            var keyboardContainerHeight = ((RectTransform) KeyboardContainer.transform).rect.width;
+            var keyDesiredWidth = (keyboardContainerWidth - 20) / 12;
+            var keyDesiredHeight = (keyboardContainerHeight - 10) / 3;
+            var keyActualWidth = Math.Max(keyDesiredWidth, keyDesiredHeight);
             foreach (var t in keyString)
             {
                 switch (t)
                 {
+                    
                     case '<':
                     {
-                        var keyboardButtonGameObject =
+                        var keyboardButton =
                             Instantiate(KeybaordButtonLong, buttonRow.transform, false) as GameObject;
-                        var keyboardButtonScript = keyboardButtonGameObject.GetComponent<KeyboardButton>();
+                        var rect = ((RectTransform) keyboardButton.transform).rect;
+                        rect.width = keyActualWidth;
+                        rect.height = keyActualWidth;
+                        var keyboardButtonScript = keyboardButton.GetComponent<KeyboardButton>();
                         var letterData = new LetterData(t);
                         keyboardButtonScript.Init(letterData, _tileColors);
                         keyboardButtonScript.TextGuiElement.text = "<< BACKSPACE";
@@ -89,9 +99,12 @@ public class GameManager : MonoBehaviour
                     }
                     case '!':
                     {
-                        var keyboardButtonGameObject =
+                        var keyboardButton =
                             Instantiate(KeybaordButtonLong, buttonRow.transform, false) as GameObject;
-                        var keyboardButtonScript = keyboardButtonGameObject.GetComponent<KeyboardButton>();
+                        var rect = ((RectTransform) keyboardButton.transform).rect;
+                        rect.width  = keyActualWidth;
+                        rect.height = keyActualWidth;
+                        var keyboardButtonScript = keyboardButton.GetComponent<KeyboardButton>();
                         var letterData = new LetterData(t);
                         keyboardButtonScript.Init(letterData, _tileColors);
                         keyboardButtonScript.TextGuiElement.text = "ENTER";
@@ -103,6 +116,9 @@ public class GameManager : MonoBehaviour
                     {
                         var keyboardButton =
                             Instantiate(KeyboardButton, buttonRow.transform, false) as GameObject;
+                        var rect = ((RectTransform) keyboardButton.transform).rect;
+                        rect.width  = keyActualWidth;
+                        rect.height = keyActualWidth;
                         var letterData           = new LetterData(t);
                         var keyboardButtonScript = keyboardButton.GetComponent<KeyboardButton>();
                         keyboardButtonScript.Init(letterData, _tileColors);
@@ -112,6 +128,7 @@ public class GameManager : MonoBehaviour
                         break;
                     }
                 }
+
             }
         }
     }
