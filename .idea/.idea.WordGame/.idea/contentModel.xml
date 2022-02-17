@@ -9,6 +9,7 @@
       <e p="Assets" t="Include">
         <e p="Scripts" t="Include">
           <e p="Backend" t="Include">
+            <e p="FileReader.cs" t="Include" />
             <e p="GameBoard.cs" t="Include" />
             <e p="GameLogic.cs" t="Include" />
             <e p="LetterData.cs" t="Include" />
@@ -16,6 +17,7 @@
           </e>
           <e p="Common" t="Include">
             <e p="Enums.cs" t="Include" />
+            <e p="TileColors.cs" t="Include" />
           </e>
           <e p="GameManager.cs" t="Include" />
           <e p="UI" t="Include">

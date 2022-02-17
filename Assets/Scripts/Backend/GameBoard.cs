@@ -1,47 +1,71 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace Backend
 {
     public class GameBoard
     {
-        public  int            MaxNumberOfTries = 6;
+        private int            _maxNumberOfTries;
         private List<WordData> _wordList;
         private int            _currentWordIndex = 0;
 
-        public GameBoard()
+        public GameBoard(int maxNumberOfTries)
         {
+            _maxNumberOfTries = maxNumberOfTries;
             _wordList = new List<WordData>();
-            this.ResetBoard();
+            
+            this.InitializeBoard();
         }
 
-        public void ResetBoard()
+        public int CurrentWordIndex
+        {
+            get => _currentWordIndex;
+            set => _currentWordIndex = value;
+        }
+
+        
+        private void InitializeBoard()
         {
             //Initiate board with empty words.
-            for (int i = 0; i < MaxNumberOfTries - 1; i++)
+            for (var i = 0; i < _maxNumberOfTries; i++)
             {
                 _wordList.Add(new WordData());
             }
 
-            _currentWordIndex = 0;
+            CurrentWordIndex = 0;
+        }
+
+        public void ResetBoard()
+        {
+            foreach (var word in _wordList)
+            {
+                word.ResetWord();
+            }
+
+            CurrentWordIndex = 0;
         }
 
         public WordData GetCurrentWord()
         {
-            //todo increment _currentWordIndex when a 'enter' is pressed a a full guess was made.
-            WordData currentWord = _wordList[_currentWordIndex];
-
-            return _wordList[_currentWordIndex];
+            return _wordList[CurrentWordIndex];
         }
 
         public bool AddLetter(LetterData letterToAdd)
         {
-            return this._wordList[_currentWordIndex].AddLetter(letterToAdd);
+            // Debug.Log($"Adding letter {letterToAdd} at CurrentWordIndex: {CurrentWordIndex}");
+            return this._wordList[CurrentWordIndex].AddLetter(letterToAdd);
         }
 
         public bool RemoveLetter()
         {
-            return this._wordList[_currentWordIndex].RemoveLetter();
+            return this._wordList[CurrentWordIndex].RemoveLetter();
+        }
+
+        // returns the number of tries left
+        public int NumberOfTriesLeft()
+        {
+            return this._maxNumberOfTries - this._currentWordIndex;
         }
 
 
@@ -53,13 +77,7 @@ namespace Backend
 
         public override string ToString()
         {
-            string output = "Board Words: \n";
-            foreach (var word in _wordList)
-            {
-                output += $"{word}\n";
-            }
-
-            return output;
+            return _wordList.Aggregate("Board Words: \n", (current, word) => current + $"{word}\n");
         }
         
     }

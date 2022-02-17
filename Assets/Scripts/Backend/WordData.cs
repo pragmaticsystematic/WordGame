@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using Common;
 
 namespace Backend
 {
@@ -14,7 +16,7 @@ namespace Backend
             LetterList = new List<LetterData>();
 
             // initiate list with 'empty' letters.
-            for (int i = 0; i < WordMaxLength; i++)
+            for (var i = 0; i < WordMaxLength; i++)
             {
                 LetterList.Add(new LetterData());
             }
@@ -38,7 +40,7 @@ namespace Backend
         public bool RemoveLetter()
         {
             bool success = false;
-            if (!isWordEmpty())
+            if (!IsWordEmpty())
             {
                 
                 LetterList[_inputLetterIndex - 1].CurrentLetter = char.MinValue;
@@ -61,20 +63,31 @@ namespace Backend
             return this._inputLetterIndex == WordMaxLength;
         }
 
-        private bool isWordEmpty()
+        private bool IsWordEmpty()
         {
             return this._inputLetterIndex == 0;
         }
 
         public override string ToString()
         {
-            string output = "";
-            foreach (var letter in LetterList)
+            return LetterList.Aggregate("", (current, letter) => current + $"{letter}\n");
+        }
+
+        public string GetWordString()
+        {
+            return LetterList.Aggregate("", (current, letter) => current + $"{letter.CurrentLetter}");
+        }
+
+        //Resets the current word letters to char.min (Empty char)
+        public void ResetWord()
+        {
+            foreach (var letterData in LetterList)
             {
-                output += $"{letter}\n";
+                letterData.CurrentLetter = char.MinValue;
+                letterData.State = LetterState.Empty;
             }
 
-            return output;
+            _inputLetterIndex = 0;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using Backend;
+using Common;
 using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Serialization;
@@ -9,30 +10,85 @@ namespace DefaultNamespace
 {
     public class KeyboardButton : MonoBehaviour
     {
-        [SerializeField] private GameObject keyboardButtonPrefabInstance;
-        public                   LetterData LetterData { get; set; }
-        [SerializeField] private Text       keyboardButtonTextReference;
-        [SerializeField] private Image      keyboardButtonBackgroundImageReference;
-        [SerializeField] private Button     keyboardButtonButton;
-        
-        
+        [SerializeField] private GameObject  keyboardButtonPrefabInstance;
+        [SerializeField] private Button      buttonGuiElement;
+        public                   LetterData  LetterData { get; set; }
+        private                  Text        _textGuiElement;
+
+        public Button ButtonGuiElement
+        {
+            get => buttonGuiElement;
+            set => buttonGuiElement = value;
+        }
+
+        public Text TextGuiElement
+        {
+            get => _textGuiElement;
+            set => _textGuiElement = value;
+        }
+
+        public Image BackgroundImageGuiElement
+        {
+            get => _backgroundImageGuiElement;
+            set => _backgroundImageGuiElement = value;
+        }
+
+        private                  Image       _backgroundImageGuiElement;
+        private                  LetterState _previousLetterState;
+        private                  TileColors  _tileColors;
+
+
         //delegates
         public delegate void OnButtonClickedDelegate(LetterData clickedLetterData);
 
         public event OnButtonClickedDelegate OnButtonClicked;
-        
+
 
         //We use this instead of a constructor because Unity doesn't call constructors of MonoBehavior
-        public void Init(LetterData letterData)
+        public void Init(LetterData letterData, TileColors tileColors)
         {
-            this.LetterData = letterData;
-            keyboardButtonTextReference.text = char.ToUpper(letterData.CurrentLetter).ToString();
+            LetterData                 = letterData;
+            _tileColors                = tileColors;
+            _textGuiElement            = buttonGuiElement.GetComponentInChildren<Text>();
+            _backgroundImageGuiElement = buttonGuiElement.GetComponent<Image>();
+
+            _textGuiElement.text = char.ToUpper(letterData.CurrentLetter).ToString();
+            _previousLetterState = letterData.State;
+
 
             //callbacks
-            keyboardButtonButton.onClick.AddListener(() => {OnButtonClicked?.Invoke(this.LetterData);});
-            var cb = keyboardButtonButton.colors;
-            cb.normalColor = Color.magenta;
+            buttonGuiElement.onClick.AddListener(() => { OnButtonClicked?.Invoke(this.LetterData); });
+
+            LetterData.OnLetterStateChanged -= OnLetterStatusChanged;
+            LetterData.OnLetterStateChanged += OnLetterStatusChanged;
+
         }
-        
+
+        private void OnLetterStatusChanged()
+        {
+            // Debug.Log($"Keyboard button {LetterData.CurrentLetter} letter state changed to {LetterData.State}");
+            switch (LetterData.State)
+            {
+                case LetterState.Empty:
+                case LetterState.Unchecked:
+                    _backgroundImageGuiElement.color = _tileColors.letterColorUnchecked;
+                    break;
+                case LetterState.LetterDoesNotExistInWord:
+                    _backgroundImageGuiElement.color = _tileColors.letterColorLetterNotExist;
+                    break;
+                case LetterState.LetterExistInWordButNotInOrder:
+                    if (_previousLetterState != LetterState.LetterExistsInWordAndInOrder)
+                    {
+                        _backgroundImageGuiElement.color = _tileColors.letterColorExistWrongPlace;
+                    }
+
+                    break;
+                case LetterState.LetterExistsInWordAndInOrder:
+                    _backgroundImageGuiElement.color = _tileColors.letterColorExistCorrectPlace;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
     }
 }

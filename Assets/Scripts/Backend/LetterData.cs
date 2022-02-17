@@ -11,6 +11,11 @@ namespace Backend
         public delegate void OnLetterChangedDelegate();
 
         public event OnLetterChangedDelegate OnLetterChanged;
+        
+        
+        public delegate void OnLetterStateChangedDelegate();
+
+        public event OnLetterStateChangedDelegate OnLetterStateChanged;
 
         private char _currentLetter;
 
@@ -19,7 +24,7 @@ namespace Backend
         public LetterState State
         {
             get => _letterState;
-            set { _letterState = value; OnLetterChanged?.Invoke(); }
+            set { _letterState = value; OnLetterStateChanged?.Invoke(); }
         }
 
         public char CurrentLetter
