@@ -41,16 +41,5 @@ namespace DefaultNamespace
             }
         }
 
-        // public void Awake()
-        // {
-        //     var letterCells = gameGrid.GetComponentsInChildren<LetterCellScript>();
-        //
-        //     for (int i = 0; i < letters.Length; i++)
-        //     {
-        //         var currentLetter = letters[i];
-        //         letterCells[i].LetterData = new LetterData(currentLetter);
-        //         // letterCells[i].OnLetterChange();
-        //     }
-        // }
     }
 }
