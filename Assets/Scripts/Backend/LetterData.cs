@@ -1,5 +1,6 @@
 ﻿using System;
 using Common;
+using Network;
 
 namespace Backend
 {
@@ -41,7 +42,7 @@ namespace Backend
                 OnLetterChanged?.Invoke();
             }
         }
-        
+
         //delegates and events. 
         public delegate void OnLetterChangedDelegate();
 
@@ -68,6 +69,12 @@ namespace Backend
         {
             CurrentLetter = char.ToLower(letter);
             State         = LetterState.Unchecked;
+        }
+
+        public LetterDataSchema ToSchema()
+        {
+            var schema = new LetterDataSchema {Letter = _currentLetter, LetterState = _letterState};
+            return schema;
         }
 
         /// <summary>

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Common;
+using Network;
 
 namespace Backend
 {
@@ -113,6 +114,13 @@ namespace Backend
             //This is not the intended behavior. We want to return a word that contains all the characters from the start
             //till the first char.minvalue character.
             return LetterList.Aggregate("", (current, letter) => current + $"{letter.CurrentLetter}");
+        }
+
+        public WordDataSchema ToSchema()
+        {
+            var letterDataSchemaList = LetterList.Select(letterData => letterData.ToSchema()).ToList();
+            var schema               = new WordDataSchema {LetterData = letterDataSchemaList};
+            return schema;
         }
 
         /// <summary>

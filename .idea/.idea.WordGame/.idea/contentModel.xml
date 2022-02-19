@@ -30,6 +30,8 @@
             <e p="FileReader.cs" t="Include" />
             <e p="GameBoard.cs" t="Include" />
             <e p="GameLogic.cs" t="Include" />
+            <e p="GameLogicLocal.cs" t="Include" />
+            <e p="GameLogicRemote.cs" t="Include" />
             <e p="LetterData.cs" t="Include" />
             <e p="WordData.cs" t="Include" />
           </e>
@@ -38,6 +40,11 @@
             <e p="TileColors.cs" t="Include" />
           </e>
           <e p="GameManager.cs" t="Include" />
+          <e p="Network" t="Include">
+            <e p="CommunicationStruct.cs" t="Include" />
+            <e p="LetterDataSchema.cs" t="Include" />
+            <e p="TCPClient.cs" t="Include" />
+          </e>
           <e p="UI" t="Include">
             <e p="GameGridScript.cs" t="Include" />
             <e p="KeyboardButton.cs" t="Include" />

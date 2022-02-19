@@ -5,8 +5,10 @@ using Backend;
 using Common;
 using DefaultNamespace;
 using DefaultNamespace.Menus;
+using Network;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = System.Random;
 
 public class GameManager : MonoBehaviour
 {
@@ -40,6 +42,10 @@ public class GameManager : MonoBehaviour
 
     private MenuManager _menuManager;
 
+    private TcpClient _tcpClient;
+
+    private GameMode _gameMode;
+
 
     public GameManager()
     {
@@ -50,11 +56,24 @@ public class GameManager : MonoBehaviour
     void Start()
     {
         Debug.Log("Game manager start");
-        this._gameLogic = new GameLogic();
+        // this._gameLogic = new GameLogic();
 
         _keyboardLettersToUpdate = new List<LetterData>();
         _tileColors              = GetComponent<TileColors>();
         _menuManager             = GetComponent<MenuManager>();
+        _tcpClient               = new TcpClient("127.0.0.1", 11000);
+        _gameMode                = GameMode.Online;
+
+        var randomNumber = new Random().Next(0, 5000);
+
+        if (_gameMode == GameMode.Offline)
+        {
+            this._gameLogic = new GameLogicLocal();
+        }
+        else
+        {
+            this._gameLogic = new GameLogicRemote(_tcpClient, $"Michael_{randomNumber}");
+        }
         // notificationScript = notificationScript.GetComponent<NotificationScript>();
 
         //initializes the game logic and selects a new word to guess.
@@ -63,6 +82,8 @@ public class GameManager : MonoBehaviour
         initializeOnScreenKeyboard();
         InitializeBoard();
 
+
+        //Event callbacks connections.
         _menuManager.OnRestartGame -= ResetGame;
         _menuManager.OnRestartGame += ResetGame;
 
@@ -71,23 +92,14 @@ public class GameManager : MonoBehaviour
 
         _gameLogic.OnGameWon -= _menuManager.GameOver;
         _gameLogic.OnGameWon += _menuManager.GameOver;
+
+        _tcpClient.OnSeverReplyReceived -= HandleServerReply;
+        _tcpClient.OnSeverReplyReceived += HandleServerReply;
     }
 
 
     private void initializeOnScreenKeyboard()
     {
-        // foreach (var t in keys)
-        // {
-        //     var keyboardButton =
-        //         Instantiate(KeyboardButton, ScrollViewContent.transform, false) as GameObject;
-        //     var letterData           = new LetterData(t);
-        //     var keyboardButtonScript = keyboardButton.GetComponent<KeyboardButton>();
-        //     keyboardButtonScript.Init(letterData, _tileColors);
-        //     keyboardButtonScript.OnButtonClicked -= KeyboardButtonPressed;
-        //     keyboardButtonScript.OnButtonClicked += KeyboardButtonPressed;
-        //     _keyboardButtons.Add(t, keyboardButtonScript);
-        // }
-
         foreach (var keyString in keyList)
         {
             var buttonRow               = Instantiate(KeyboardKeyRow, KeyboardContainer.transform, false) as GameObject;
@@ -153,12 +165,11 @@ public class GameManager : MonoBehaviour
     {
         var letterList = _gameLogic.GameBoard.GetAllLetters();
         _gameGridScript = gameGrid.GetComponent<GameGridScript>();
-        _gameGridScript.Init();
-        _gameGridScript.InitializeLetters(letterList, _tileColors);
+        _gameGridScript.Init(letterList, _tileColors);
     }
 
 
-    private void ResetGame()
+    private async void ResetGame()
     {
         //Reset Keyboard buttons
         foreach (var keyboardButton in _keyboardButtons.Values)
@@ -171,7 +182,7 @@ public class GameManager : MonoBehaviour
 
         //Reset Game Logic
 
-        _gameLogic.ResetGame();
+        await _gameLogic.ResetGame();
         _keyboardLettersToUpdate.Clear();
     }
 
@@ -207,10 +218,14 @@ public class GameManager : MonoBehaviour
         var result = this._gameLogic.GameBoard.RemoveLetter();
     }
 
-    private void OnEnterPressed()
+    private async void OnEnterPressed()
     {
         _keyboardLettersToUpdate.Clear();
-        this._gameLogic.AnalyzeGuess(_keyboardLettersToUpdate, notificationScript);
+        var    wordData         = _gameLogic.GameBoard.GetCurrentWord();
+        var    currentGuessWord = wordData.GetWordString();
+        string jsonString       = JsonUtility.ToJson(wordData.ToSchema());
+        // _tcpClient.SendMessage($"Hello from Unity! Player guess is `{currentGuessWord.ToUpper()}`");
+        await this._gameLogic.AnalyzeGuess(_keyboardLettersToUpdate, notificationScript);
         UpdateKeyboardLettersState();
     }
 
@@ -226,6 +241,11 @@ public class GameManager : MonoBehaviour
         {
             _keyboardButtons[letter.CurrentLetter].LetterData.State = letter.State;
         }
+    }
+
+    private void HandleServerReply(string serverReplyString)
+    {
+        Debug.Log($"GameManger received server reply, {serverReplyString} ");
     }
 
     // Update is called once per frame

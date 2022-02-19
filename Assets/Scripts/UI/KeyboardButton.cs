@@ -2,18 +2,18 @@
 using Backend;
 using Common;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace DefaultNamespace
 {
+    /// <summary>
+    /// Represents the GUI element for an on-screen keyboard button.
+    /// </summary>
     public class KeyboardButton : MonoBehaviour
     {
-        [SerializeField] private GameObject  keyboardButtonPrefabInstance;
-        [SerializeField] private Button      buttonGuiElement;
-        public                   LetterData  LetterData { get; set; }
-        private                  Text        _textGuiElement;
+        [SerializeField] private Button     buttonGuiElement;
+        public                   LetterData LetterData { get; set; }
+        private                  Text       _textGuiElement;
 
         public Button ButtonGuiElement
         {
@@ -33,9 +33,9 @@ namespace DefaultNamespace
             set => _backgroundImageGuiElement = value;
         }
 
-        private                  Image       _backgroundImageGuiElement;
-        private                  LetterState _previousLetterState;
-        private                  TileColors  _tileColors;
+        private Image       _backgroundImageGuiElement;
+        private LetterState _previousLetterState;
+        private TileColors  _tileColors;
 
 
         //delegates
@@ -61,7 +61,6 @@ namespace DefaultNamespace
 
             LetterData.OnLetterStateChanged -= OnLetterStatusChanged;
             LetterData.OnLetterStateChanged += OnLetterStatusChanged;
-
         }
 
         private void OnLetterStatusChanged()
