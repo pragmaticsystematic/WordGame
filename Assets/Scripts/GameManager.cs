@@ -1,14 +1,23 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Backend;
 using Common;
 using DefaultNamespace;
 using DefaultNamespace.Menus;
 using Network;
+using Network.NetworkCodes;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = System.Random;
+
+public enum ConnectionStatus
+{
+    NotConnected,
+    Pending,
+    Connected
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -46,6 +55,13 @@ public class GameManager : MonoBehaviour
 
     private GameMode _gameMode;
 
+    private string _playerIdentifier;
+
+    private string _serverIp;
+    private int    _serverPort;
+
+    private ConnectionStatus _connectionStatus = ConnectionStatus.NotConnected;
+
 
     public GameManager()
     {
@@ -53,39 +69,67 @@ public class GameManager : MonoBehaviour
     }
 
     // Start is called before the first frame update
-    void Start()
+    private void Awake()
     {
         Debug.Log("Game manager start");
-        // this._gameLogic = new GameLogic();
 
         _keyboardLettersToUpdate = new List<LetterData>();
         _tileColors              = GetComponent<TileColors>();
         _menuManager             = GetComponent<MenuManager>();
-        _tcpClient               = new TcpClient("127.0.0.1", 11000);
-        _gameMode                = GameMode.Online;
-
-        var randomNumber = new Random().Next(0, 5000);
-
-        if (_gameMode == GameMode.Offline)
-        {
-            this._gameLogic = new GameLogicLocal();
-        }
-        else
-        {
-            this._gameLogic = new GameLogicRemote(_tcpClient, $"Michael_{randomNumber}");
-        }
-        // notificationScript = notificationScript.GetComponent<NotificationScript>();
+        // _tcpClient               = new TcpClient("127.0.0.1", 13000);
+        // _gameMode                = GameMode.Online;
+        //
+        // var randomNumber = new Random().Next(0, 5000);
+        //
+        // if (_gameMode == GameMode.Offline)
+        // {
+        //     this._gameLogic = new GameLogicLocal();
+        // }
+        // else
+        // {
+        //     _playerIdentifier = $"Michael_{randomNumber}";
+        //     this._gameLogic   = new GameLogicRemote(_tcpClient, _playerIdentifier);
+        // }
 
         //initializes the game logic and selects a new word to guess.
         // this._gameLogic.ResetGame();
 
+        // initializeOnScreenKeyboard();
+        // InitializeBoard();
+
         initializeOnScreenKeyboard();
-        InitializeBoard();
 
 
         //Event callbacks connections.
         _menuManager.OnRestartGame -= ResetGame;
         _menuManager.OnRestartGame += ResetGame;
+
+        _menuManager.OnStartOnlineGame -= StartNewOnlineGame;
+        _menuManager.OnStartOnlineGame += StartNewOnlineGame;
+
+        _menuManager.OnStartOfflineGame -= StartOfflineGame;
+        _menuManager.OnStartOfflineGame += StartOfflineGame;
+
+        // _gameLogic.OnGameLost -= _menuManager.GameOver;
+        // _gameLogic.OnGameLost += _menuManager.GameOver;
+        //
+        // _gameLogic.OnGameWon -= _menuManager.GameOver;
+        // _gameLogic.OnGameWon += _menuManager.GameOver;
+
+        // _tcpClient.OnSeverReplyReceived -= HandleServerReply;
+        // _tcpClient.OnSeverReplyReceived += HandleServerReply;
+    }
+
+    private void StartNewOnlineGame(string ip, int port, string playerName)
+    {
+        _tcpClient?.CloseConnection();
+
+        _tcpClient        = new TcpClient(ip, port);
+        _playerIdentifier = playerName;
+        this._gameLogic   = new GameLogicRemote(_tcpClient, _playerIdentifier);
+
+
+        InitializeBoard();
 
         _gameLogic.OnGameLost -= _menuManager.GameOver;
         _gameLogic.OnGameLost += _menuManager.GameOver;
@@ -95,6 +139,58 @@ public class GameManager : MonoBehaviour
 
         _tcpClient.OnSeverReplyReceived -= HandleServerReply;
         _tcpClient.OnSeverReplyReceived += HandleServerReply;
+
+        _tcpClient.OnConnectionStatusChanged -= SetConnectionStatus;
+        _tcpClient.OnConnectionStatusChanged += SetConnectionStatus;
+
+        _connectionStatus = ConnectionStatus.Pending;
+        _tcpClient.ConnectToTcpServer();
+
+        StartCoroutine(CheckConnectionStatus(5));
+    }
+
+    private void SetConnectionStatus(ConnectionStatus connectionStatus)
+    {
+        this._connectionStatus = connectionStatus;
+    }
+
+
+    IEnumerator CheckConnectionStatus(int timeoutSeconds)
+    {
+        var timeoutCounter = 0;
+        while (timeoutCounter <= timeoutSeconds && _connectionStatus == ConnectionStatus.Pending)
+        {
+            yield return new WaitForSeconds(1f);
+            timeoutCounter += 1;
+            Debug.Log("Waiting to determine connection status...");
+        }
+
+        if (_connectionStatus == ConnectionStatus.NotConnected)
+        {
+            Debug.Log("Connection status - FAILED to connect");
+            _menuManager.ShowFailedToConnectToServerMenu();
+        }
+        else if (_connectionStatus == ConnectionStatus.Connected)
+        {
+            Debug.Log("Connection status - Success");
+            ResetGame();
+        }
+    }
+
+    private void StartOfflineGame()
+    {
+        _tcpClient?.CloseConnection();
+        _gameLogic = new GameLogicLocal();
+
+        InitializeBoard();
+
+        _gameLogic.OnGameLost -= _menuManager.GameOver;
+        _gameLogic.OnGameLost += _menuManager.GameOver;
+
+        _gameLogic.OnGameWon -= _menuManager.GameOver;
+        _gameLogic.OnGameWon += _menuManager.GameOver;
+
+        ResetGame();
     }
 
 
@@ -246,6 +342,23 @@ public class GameManager : MonoBehaviour
     private void HandleServerReply(string serverReplyString)
     {
         Debug.Log($"GameManger received server reply, {serverReplyString} ");
+    }
+
+    private void OnApplicationQuit()
+    {
+        Debug.Log("Application is about to quit...");
+        if (_gameMode == GameMode.Online)
+        {
+            Debug.Log("We are in an online mode... Sending disconnect notification to server");
+            var requestStruct = new CommunicationStruct()
+            {
+                RequestId        = 999,
+                PlayerIdentifier = _playerIdentifier,
+                RequestCommand   = NetworkClientRequestCommandCodes.REQUEST_DISCONNECT,
+                Payload          = "DONTCARE"
+            };
+            _tcpClient.SendMessage(requestStruct.ToString());
+        }
     }
 
     // Update is called once per frame

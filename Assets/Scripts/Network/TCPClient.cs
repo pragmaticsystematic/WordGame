@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -11,10 +12,11 @@ namespace Network
     {
         #region private members
 
-        private System.Net.Sockets.TcpClient socketConnection;
+        private System.Net.Sockets.TcpClient _socketConnection;
         private Thread                       _clientReceiveThread;
-        private IPAddress                    _ipAddress;
+        private string                       _ipAddress;
         private int                          _port;
+        private List<string>                 _messageQueue;
 
         #endregion
 
@@ -24,38 +26,37 @@ namespace Network
 
         public event OnSeverReplyReceivedDelegate OnSeverReplyReceived;
 
+        public delegate void OnConnectionStatusChangedDelegate(ConnectionStatus connectionStatus);
+
+        public event OnConnectionStatusChangedDelegate OnConnectionStatusChanged;
+
 
         public TcpClient(string ipAddress, int port)
         {
-            _ipAddress = IPAddress.Parse(ipAddress);
-            _port      = port;
-            ConnectToTcpServer();
+            _ipAddress    = ipAddress;
+            _port         = port;
+            _messageQueue = new List<string>();
         }
 
-        // // Use this for initialization 	
-        // void Start()
-        // {
-        //     ConnectToTcpServer();
-        // }
+        public void CloseConnection()
+        {
+            _clientReceiveThread.Abort();
+        }
 
-        // // Update is called once per frame
-        // void Update()
-        // {
-        //     if (Input.GetKeyDown(KeyCode.Space))
-        //     {
-        //         SendMessage();
-        //     }
-        // }
+        public bool IsConnected()
+        {
+            return _socketConnection != null && _socketConnection.Connected;
+        }
+
 
         /// <summary> 	
         /// Setup socket connection. 	
         /// </summary> 	
-        private void ConnectToTcpServer()
+        public void ConnectToTcpServer()
         {
             try
             {
-                _clientReceiveThread              = new Thread(new ThreadStart(ListenForData));
-                _clientReceiveThread.IsBackground = true;
+                _clientReceiveThread = new Thread(new ThreadStart(ListenForData)) {IsBackground = true};
                 _clientReceiveThread.Start();
             }
             catch (Exception e)
@@ -71,21 +72,34 @@ namespace Network
         {
             try
             {
-                socketConnection = new System.Net.Sockets.TcpClient("127.0.0.1", 13000);
+                _socketConnection = new System.Net.Sockets.TcpClient(_ipAddress, _port);
+                OnConnectionStatusChanged?.Invoke(ConnectionStatus.Connected);
+                if (_messageQueue.Count > 0)
+                {
+                    Debug.Log("Sending messages that were accumulated before the connection was made...");
+                    foreach (var message in _messageQueue)
+                    {
+                        SendMessage(message);
+                    }
+
+                    Debug.Log("Clearing message queue...");
+                    _messageQueue.Clear();
+                }
+
                 var bytes = new byte[1024];
                 while (true)
                 {
                     // Get a stream object for reading 				
-                    using (NetworkStream stream = socketConnection.GetStream())
+                    using (NetworkStream stream = _socketConnection.GetStream())
                     {
                         int length;
                         // Read incomming stream into byte arrary. 					
                         while ((length = stream.Read(bytes, 0, bytes.Length)) != 0)
                         {
-                            var incommingData = new byte[length];
-                            Array.Copy(bytes, 0, incommingData, 0, length);
+                            var incomingData = new byte[length];
+                            Array.Copy(bytes, 0, incomingData, 0, length);
                             // Convert byte array to string message. 						
-                            string serverMessage = Encoding.ASCII.GetString(incommingData);
+                            var serverMessage = Encoding.ASCII.GetString(incomingData);
                             Debug.Log("server message received as: " + serverMessage);
                             OnSeverReplyReceived?.Invoke(serverMessage);
                         }
@@ -95,6 +109,7 @@ namespace Network
             catch (SocketException socketException)
             {
                 Debug.Log("Socket exception: " + socketException);
+                OnConnectionStatusChanged?.Invoke(ConnectionStatus.NotConnected);
             }
         }
 
@@ -103,15 +118,17 @@ namespace Network
         /// </summary> 	
         public void SendMessage(string messageToSend)
         {
-            if (socketConnection == null)
+            if (_socketConnection == null)
             {
+                Debug.Log("Trying to send a message through unconnected socket! Putting it in queue!");
+                _messageQueue.Add(messageToSend);
                 return;
             }
 
             try
             {
                 // Get a stream object for writing. 			
-                NetworkStream stream = socketConnection.GetStream();
+                NetworkStream stream = _socketConnection.GetStream();
                 if (stream.CanWrite)
                 {
                     string clientMessage = messageToSend;

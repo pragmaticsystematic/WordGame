@@ -1,6 +1,7 @@
 ﻿using System;
 using Backend;
 using Common;
+using DG.Tweening;
 using UnityEngine;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
@@ -51,28 +52,51 @@ namespace DefaultNamespace
 
         public void OnLetterChange()
         {
+            
             if (LetterData.CurrentLetter.Equals(char.MinValue))
             {
-                letterText.text = "";
+                letterText.DOText("", 0.45f);
+                // letterText.text = "";
             }
             else
             {
-                letterText.text = char.ToUpper(LetterData.CurrentLetter).ToString();
+                letterText.DOText(char.ToUpper(LetterData.CurrentLetter).ToString(), 0.45f);
+                // letterText.text = char.ToUpper(LetterData.CurrentLetter).ToString();
             }
         }
 
         private void OnLetterStateChanged()
         {
-            // Debug.Log("OnLetterStateChange called in LetterCellScript");
-            letterBackgroundImage.color = _letterData.State switch
+            const float duration = 0.45f;
+            switch (_letterData.State)
             {
-                LetterState.Empty                          => TileColors.letterColorUnchecked,
-                LetterState.Unchecked                      => TileColors.letterColorUnchecked,
-                LetterState.LetterDoesNotExistInWord       => TileColors.letterColorLetterNotExist,
-                LetterState.LetterExistInWordButNotInOrder => TileColors.letterColorExistWrongPlace,
-                LetterState.LetterExistsInWordAndInOrder   => TileColors.letterColorExistCorrectPlace,
-                _                                          => throw new ArgumentOutOfRangeException()
-            };
+                case LetterState.Empty:
+                case LetterState.Unchecked:
+                    letterBackgroundImage.DOColor(TileColors.letterColorUnchecked, duration);
+                    break;
+                case LetterState.LetterDoesNotExistInWord:
+                    letterBackgroundImage.DOColor(TileColors.letterColorLetterNotExist, duration);
+                    break;
+                case LetterState.LetterExistInWordButNotInOrder:
+                    letterBackgroundImage.DOColor(TileColors.letterColorExistWrongPlace, duration);
+                    break;
+                case LetterState.LetterExistsInWordAndInOrder:
+                    letterBackgroundImage.DOColor(TileColors.letterColorExistCorrectPlace, duration);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            // // Debug.Log("OnLetterStateChange called in LetterCellScript");
+            // letterBackgroundImage.color = _letterData.State switch
+            // {
+            //     LetterState.Empty                          => TileColors.letterColorUnchecked,
+            //     LetterState.Unchecked                      => TileColors.letterColorUnchecked,
+            //     LetterState.LetterDoesNotExistInWord       => TileColors.letterColorLetterNotExist,
+            //     LetterState.LetterExistInWordButNotInOrder => TileColors.letterColorExistWrongPlace,
+            //     LetterState.LetterExistsInWordAndInOrder   => TileColors.letterColorExistCorrectPlace,
+            //     _                                          => throw new ArgumentOutOfRangeException()
+            // };
         }
     }
 }

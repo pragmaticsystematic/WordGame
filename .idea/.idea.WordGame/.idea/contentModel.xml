@@ -43,6 +43,7 @@
           <e p="Network" t="Include">
             <e p="CommunicationStruct.cs" t="Include" />
             <e p="LetterDataSchema.cs" t="Include" />
+            <e p="NetworkCommandCodes.cs" t="Include" />
             <e p="TCPClient.cs" t="Include" />
           </e>
           <e p="UI" t="Include">
@@ -51,7 +52,11 @@
             <e p="LetterCellScript.cs" t="Include" />
             <e p="MenuManager.cs" t="Include" />
             <e p="Menus" t="Include">
+              <e p="MenuElements" t="Include">
+                <e p="MenuInputField.cs" t="Include" />
+              </e>
               <e p="NotificationScript.cs" t="Include" />
+              <e p="StartOnlineGameMenu.cs" t="Include" />
             </e>
             <e p="WordScript.cs" t="Include" />
           </e>

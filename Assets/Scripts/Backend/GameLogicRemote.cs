@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Common;
 using DefaultNamespace.Menus;
 using Network;
+using Network.NetworkCodes;
 using UnityEngine;
 
 namespace Backend
@@ -13,7 +14,7 @@ namespace Backend
     public class GameLogicRemote : GameLogic
     {
         private readonly TcpClient                            _tcpClient;
-        private          string                               _playerIdentifier;
+        private readonly string                               _playerIdentifier;
         private readonly Dictionary<int, CommunicationStruct> _requestDictionary;
         private          int                                  _requestId;
         private          string                               _wordToGuess;
@@ -44,27 +45,30 @@ namespace Backend
                     _requestId += 1;
                     var requestStruct = new CommunicationStruct()
                     {
-                        RequestCommand   = 1,
+                        RequestCommand   = NetworkClientRequestCommandCodes.EVALUATE_GUESS,
                         PlayerIdentifier = _playerIdentifier,
                         Payload          = wordToGuessString
                     };
 
-                    var reply = await SendMessageToServerAndWaitUntilServerReplyArrives(requestStruct);
-                    if (reply.RequestCommand == 0) //success
+                    var reply = await SendMessageToServerAndWaitUntilServerReplyArrives(requestStruct, 10);
+                    if (reply.RequestCommand == NetworkServerReplyCommandCodes.REQUEST_SUCCESS)
                     {
                         var evaluationResults = reply.Payload;
                         for (var i = 0; i < evaluationResults.Length; i++)
                         {
                             switch (evaluationResults[i])
                             {
-                                case '0':
+                                case LetterEvaluationCodes.LETTER_DOESNT_EXIST_IN_WORD:
                                     wordToGuessData.LetterList[i].State = LetterState.LetterDoesNotExistInWord;
                                     break;
-                                case '1':
+                                case LetterEvaluationCodes.LETTER_EXISTS_IN_WORD_BUT_NOT_IN_ORDER:
                                     wordToGuessData.LetterList[i].State = LetterState.LetterExistInWordButNotInOrder;
                                     break;
-                                case '2':
+                                case LetterEvaluationCodes.LETTER_EXISTS_IN_WORD_AND_IN_CORRECT_PLACE:
                                     wordToGuessData.LetterList[i].State = LetterState.LetterExistsInWordAndInOrder;
+                                    break;
+                                case LetterEvaluationCodes.SOMETHING_WENT_WRONG_YOU_SHOULD_PANIK:
+                                    Debug.Log("ERROR IN SERVER WORD EVALUATION!");
                                     break;
                                 default:
                                     Debug.Log(
@@ -130,6 +134,7 @@ namespace Backend
             await TellServerToChooseNewWordForPlayer();
         }
 
+
         private void ServerReply(string serverReply)
         {
             Debug.Log($"GameLogicRemote Received reply from server: {serverReply}");
@@ -145,14 +150,14 @@ namespace Backend
         {
             var communicationStruct = new CommunicationStruct()
             {
-                RequestCommand   = 0,
+                RequestCommand   = NetworkClientRequestCommandCodes.GUESS_NEW_WORD,
                 PlayerIdentifier = _playerIdentifier,
                 Payload          = "DONTCARE"
             };
 
-            var reply = await SendMessageToServerAndWaitUntilServerReplyArrives(communicationStruct);
+            var reply = await SendMessageToServerAndWaitUntilServerReplyArrives(communicationStruct, 10);
 
-            if (reply.RequestCommand == 0)
+            if (reply.RequestCommand == NetworkServerReplyCommandCodes.REQUEST_SUCCESS)
             {
                 Debug.Log("Server successfully picked a new word for the player!");
                 _wordToGuess = reply.Payload;
@@ -163,14 +168,14 @@ namespace Backend
         {
             var requestStruct = new CommunicationStruct()
             {
-                RequestCommand   = 2,
+                RequestCommand   = NetworkClientRequestCommandCodes.CHECK_WORD_EXISTS,
                 PlayerIdentifier = _playerIdentifier,
                 Payload          = wordToCheck
             };
             var result = false;
 
-            var replyStruct = await SendMessageToServerAndWaitUntilServerReplyArrives(requestStruct);
-            if (replyStruct.RequestCommand == 0)
+            var replyStruct = await SendMessageToServerAndWaitUntilServerReplyArrives(requestStruct, 10);
+            if (replyStruct.RequestCommand == NetworkServerReplyCommandCodes.REQUEST_SUCCESS)
             {
                 result = bool.Parse(replyStruct.Payload);
             }
@@ -180,15 +185,20 @@ namespace Backend
 
         //todo: implement timeout for this function
         private async Task<CommunicationStruct> SendMessageToServerAndWaitUntilServerReplyArrives(
-            CommunicationStruct messageToSend)
+            CommunicationStruct messageToSend, int timeoutSeconds)
         {
+            var timeoutCounter = 0;
+            var isTimeout      = false;
+
+            //Each time we send a request we increment the request id counter.
+            //so that each request will be uniquely identifiable. 
             messageToSend.RequestId = _requestId += 1;
             _requestDictionary.Add(_requestId, null);
 
             _tcpClient.SendMessage(messageToSend.ToString());
             CommunicationStruct replyStruct     = null;
             var                 shouldBreakLoop = false;
-            while (!shouldBreakLoop)
+            while (!shouldBreakLoop && !isTimeout)
             {
                 replyStruct = _requestDictionary[messageToSend.RequestId];
                 if (replyStruct != null)
@@ -200,12 +210,25 @@ namespace Backend
 
                 Debug.Log("Waiting for server Reply!");
                 await Task.Delay(100);
+                timeoutCounter += 1;
+
+                if (timeoutCounter * 10 >= timeoutSeconds * 1000)
+                {
+                    Debug.Log("Reached timeout while waiting for reply... exiting");
+                    isTimeout = true;
+                }
             }
 
 
-            var replyCopy = new CommunicationStruct(replyStruct);
-            _requestDictionary.Remove(replyStruct.RequestId);
-            return replyCopy;
+            // var replyCopy = new CommunicationStruct(replyStruct);
+
+            // removed the received request from the requests dictionary.
+            if (!isTimeout)
+            {
+                _requestDictionary.Remove(replyStruct.RequestId);
+            }
+
+            return replyStruct;
         }
     }
 }

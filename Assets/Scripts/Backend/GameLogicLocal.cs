@@ -102,7 +102,7 @@ namespace Backend
                         if (NumberOfTriesLeft == 0)
                         {
                             Debug.Log($"You failed to guess the word '{_currentWordToGuess}'. Game Over!");
-                            InvokeGameWon(
+                            InvokeGameLost(
                                 $"Sorry, The word was '{_currentWordToGuess.ToUpper()}'. Good Luck next time!'");
                         }
                         else

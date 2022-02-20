@@ -1,23 +1,96 @@
 ﻿using System;
+using DefaultNamespace.Menus;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace DefaultNamespace
 {
+    public enum MenuState
+    {
+        MainMenu,
+        RequestOnlineGameMenu,
+        GameScreen,
+        GameOverMenu,
+        FailedToConnectToServer
+    }
+
     public class MenuManager : MonoBehaviour
     {
-        public GameObject mainMenu;
-        public GameObject gameScreen;
+        [Tooltip("The main Menu of the game")] public GameObject mainMenu;
+        [Tooltip("The UI of the game itself")] public GameObject gameScreen;
+
+        [Tooltip("Menu that's show when the game is over")]
         public GameObject gameOverScreen;
+
         public GameObject notificationMessage;
 
-        [SerializeField] private Text gameOverTextElement;
+        [Tooltip("Menu that's responsible for initiating an online game")]
+        public GameObject startOnlineGameMenu;
+
+        [Tooltip("Menu that's shown when failing to connect to server")]
+        public GameObject failedToConnectToServerMenu;
+
+        private StartOnlineGameMenu _startOnlineGameMenuScript;
+
+        [Tooltip("The GUI element for the game over text that's shown at the GAME OVER screen")] [SerializeField]
+        private Text gameOverTextElement;
+
+        private MenuState _menuState;
 
         private void Start()
         {
-            gameScreen.SetActive(false);
-            gameOverScreen.SetActive(false);
-            mainMenu.SetActive(true);
+            _startOnlineGameMenuScript = startOnlineGameMenu.GetComponent<StartOnlineGameMenu>();
+            _menuState                 = MenuState.MainMenu;
+            HandleStateChange();
+
+            _startOnlineGameMenuScript.OnAttemptStartOnlineGame -= StartOnlineGame;
+            _startOnlineGameMenuScript.OnAttemptStartOnlineGame += StartOnlineGame;
+        }
+
+
+        private void HandleStateChange()
+        {
+            switch (_menuState)
+            {
+                case MenuState.MainMenu:
+                    gameScreen.SetActive(false);
+                    gameOverScreen.SetActive(false);
+                    startOnlineGameMenu.SetActive(false);
+                    mainMenu.SetActive(true);
+                    failedToConnectToServerMenu.SetActive(false);
+                    break;
+                case MenuState.RequestOnlineGameMenu:
+                    gameScreen.SetActive(false);
+                    gameOverScreen.SetActive(false);
+                    startOnlineGameMenu.SetActive(true);
+                    mainMenu.SetActive(false);
+                    failedToConnectToServerMenu.SetActive(false);
+                    break;
+                case MenuState.GameScreen:
+                    gameScreen.SetActive(true);
+                    gameOverScreen.SetActive(false);
+                    startOnlineGameMenu.SetActive(false);
+                    mainMenu.SetActive(false);
+                    failedToConnectToServerMenu.SetActive(false);
+                    break;
+                case MenuState.GameOverMenu:
+                    gameScreen.SetActive(false);
+                    gameOverScreen.SetActive(true);
+                    startOnlineGameMenu.SetActive(false);
+                    mainMenu.SetActive(false);
+                    failedToConnectToServerMenu.SetActive(false);
+                    break;
+                case MenuState.FailedToConnectToServer:
+                    gameScreen.SetActive(false);
+                    gameOverScreen.SetActive(false);
+                    startOnlineGameMenu.SetActive(false);
+                    mainMenu.SetActive(false);
+                    failedToConnectToServerMenu.SetActive(true);
+                    break;
+
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
 
@@ -27,26 +100,59 @@ namespace DefaultNamespace
 
         public event OnRestartGameDelegate OnRestartGame;
 
+        public delegate void OnStartOnlineGameDelegate(string ip, int port, string playerName);
+
+        public event OnStartOnlineGameDelegate OnStartOnlineGame;
+
+        public delegate void OnStartOfflineGameDelegate();
+
+        public event OnStartOfflineGameDelegate OnStartOfflineGame;
+
 
         public void StartGame()
         {
-            mainMenu.SetActive(false);
-            gameScreen.SetActive(true);
-            OnRestartGame?.Invoke();
+            _menuState = MenuState.GameScreen;
+            HandleStateChange();
+            OnStartOfflineGame?.Invoke();
+        }
+
+        public void ShowStartOnlineGameMenu()
+        {
+            _menuState = MenuState.RequestOnlineGameMenu;
+            HandleStateChange();
+        }
+
+        public void BackToTitle()
+        {
+            _menuState = MenuState.MainMenu;
+            HandleStateChange();
+        }
+
+        public void ShowFailedToConnectToServerMenu()
+        {
+            _menuState = MenuState.FailedToConnectToServer;
+            HandleStateChange();
+        }
+
+        public void StartOnlineGame(string ip, int port, string playerName)
+        {
+            _menuState = MenuState.GameScreen;
+            HandleStateChange();
+            OnStartOnlineGame?.Invoke(ip, port, playerName);
         }
 
         public void RestartGame()
         {
-            gameOverScreen.SetActive(false);
-            gameScreen.SetActive(true);
+            _menuState = MenuState.GameScreen;
+            HandleStateChange();
             OnRestartGame?.Invoke();
         }
 
         public void GameOver(string gameOverMessage)
         {
-            gameScreen.SetActive(false);
+            _menuState = MenuState.GameOverMenu;
+            HandleStateChange();
             gameOverTextElement.text = gameOverMessage;
-            gameOverScreen.SetActive(true);
         }
 
         public void QuitGame()
